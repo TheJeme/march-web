@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#efe2c3">
+    <meta name="description" content="A calm local-first task and note app with list and kanban views.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="March">
+    <meta property="og:description" content="A calm local-first task and note app.">
+    <meta property="og:image" content="og-image.svg">
+    <meta property="og:site_name" content="March">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="March">
+    <meta name="twitter:description" content="A calm local-first task and note app.">
+    <meta name="twitter:image" content="og-image.svg">
+
+    <title>March</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell" aria-label="March app">
+      <div class="app-bar">
+        <nav class="view-tabs" aria-label="Views">
+          <button class="tab is-active" type="button" data-view="tasks" aria-label="Tasks" title="Tasks" aria-pressed="true">✓</button>
+          <button class="tab" type="button" data-view="note" aria-label="Notes" title="Notes" aria-pressed="false">✎</button>
+        </nav>
+        <button class="tab settings-tab" type="button" data-view="settings" aria-label="Settings" title="Settings" aria-pressed="false">⋯</button>
+      </div>
+
+      <section class="view is-active" id="tasksView" aria-label="Tasks">
+        <div class="task-control-row">
+          <div class="mode-toggle" aria-label="Task layout">
+            <button class="mode-button is-active" type="button" data-mode="list" aria-label="List view" title="List view" aria-pressed="true">☰</button>
+            <button class="mode-button" type="button" data-mode="kanban" aria-label="Kanban view" title="Kanban view" aria-pressed="false">▥</button>
+          </div>
+
+          <div class="task-tools" aria-label="Task tools">
+            <button class="quiet-button" id="clearDoneButton" type="button">Clear Done</button>
+          </div>
+        </div>
+
+        <form class="task-form" id="taskForm" autocomplete="off">
+          <label class="visually-hidden" for="taskInput">Task title</label>
+          <input id="taskInput" name="task" type="text" placeholder="New task" maxlength="120" required>
+          <button class="add-button" type="submit" aria-label="Add task" title="Add task">+</button>
+        </form>
+
+        <div class="task-area">
+          <div class="task-list" id="taskList" aria-live="polite"></div>
+          <div class="kanban-board" id="kanbanBoard" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="view" id="noteView" aria-label="Notes">
+        <label class="visually-hidden" for="noteInput">Notes</label>
+        <textarea id="noteInput" spellcheck="true" placeholder="Notes"></textarea>
+      </section>
+
+      <section class="view" id="settingsView" aria-label="Settings">
+        <div class="settings-panel">
+          <div class="setting-group">
+            <div class="setting-label">Theme</div>
+            <div class="theme-options" aria-label="Theme">
+              <button class="theme-button" type="button" data-theme="warm" aria-pressed="true">Warm</button>
+              <button class="theme-button" type="button" data-theme="calm" aria-pressed="false">Calm</button>
+              <button class="theme-button" type="button" data-theme="dusk" aria-pressed="false">Dusk</button>
+            </div>
+          </div>
+
+          <form class="setting-group column-settings" id="columnSettings" autocomplete="off">
+            <div class="setting-label">Columns</div>
+            <div class="column-inputs" id="columnInputs"></div>
+          </form>
+
+          <div class="setting-group setting-actions">
+          <button class="quiet-button" id="exportButton" type="button">Export</button>
+          <button class="quiet-button" id="importButton" type="button">Import</button>
+          <button class="quiet-button danger-button" id="deleteAllButton" type="button">Delete All Data</button>
+          <input class="visually-hidden" id="importFile" type="file" accept="application/json,.json">
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
