@@ -4,17 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#efe2c3">
-    <meta name="description" content="A calm local-first task and note app with list and kanban views.">
+    <meta name="description" content="Local task and note app.">
 
     <meta property="og:type" content="website">
     <meta property="og:title" content="March">
-    <meta property="og:description" content="A calm local-first task and note app.">
+    <meta property="og:description" content="Local task and note app.">
     <meta property="og:image" content="og-image.svg">
     <meta property="og:site_name" content="March">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="March">
-    <meta name="twitter:description" content="A calm local-first task and note app.">
+    <meta name="twitter:description" content="Local task and note app.">
     <meta name="twitter:image" content="og-image.svg">
 
     <title>March</title>
@@ -27,10 +27,10 @@
     <main class="shell" aria-label="March app">
       <div class="app-bar">
         <nav class="view-tabs" aria-label="Views">
-          <button class="tab is-active" type="button" data-target="note" aria-label="Notes" title="Notes" aria-pressed="true"></button>
+          <button class="tab is-active" type="button" data-target="note" aria-label="Notes" aria-pressed="true"></button>
           <span class="tab-divider" aria-hidden="true"></span>
-          <button class="tab" type="button" data-target="task-list" aria-label="Tasks list" title="Tasks list" aria-pressed="false"></button>
-          <button class="tab" type="button" data-target="task-kanban" aria-label="Tasks kanban" title="Tasks kanban" aria-pressed="false"></button>
+          <button class="tab" type="button" data-target="task-list" aria-label="Tasks list" aria-pressed="false"></button>
+          <button class="tab" type="button" data-target="task-kanban" aria-label="Tasks kanban" aria-pressed="false"></button>
         </nav>
       </div>
 
@@ -42,7 +42,7 @@
         <form class="task-form" id="taskForm" autocomplete="off">
           <label class="visually-hidden" for="taskInput">Tasks title</label>
           <input id="taskInput" name="task" type="text" placeholder="..." maxlength="120" required>
-          <button class="add-button" type="submit" aria-label="Add tasks" title="Add tasks"></button>
+          <button class="add-button" type="submit" aria-label="Add tasks"></button>
         </form>
 
         <div class="task-area">

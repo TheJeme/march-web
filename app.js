@@ -15,12 +15,12 @@ const iconMarkup = {
   kanban: '<rect x="2.5" y="3" width="3" height="10" rx="1"/><rect x="6.5" y="3" width="3" height="6.4" rx="1"/><rect x="10.5" y="3" width="3" height="8.2" rx="1"/>',
   plus: '<path d="M8 3.5v9M3.5 8h9"/>',
   "status-new": '<circle cx="8" cy="8" r="4.5"/>',
-  "status-doing": '<circle cx="8" cy="8" r="4.5"/><path d="M8 3.5a4.5 4.5 0 0 1 0 9Z" fill="currentColor" stroke="none"/>',
-  "status-done": '<circle cx="8" cy="8" r="4.5"/><path d="M5.4 8.2 7.2 10 10.8 6.4"/>',
+  "status-doing": '<circle cx="8" cy="8" r="4.5"/><path d="M8 3.5a4.5 4.5 0 0 0 0 9Z" fill="currentColor" stroke="none"/>',
+  "status-done": '<circle cx="8" cy="8" r="4.5" fill="currentColor" stroke="none"/>',
   "chevron-left": '<path d="M9.8 3.5 5.3 8l4.5 4.5"/>',
   "chevron-right": '<path d="M6.2 3.5 10.7 8l-4.5 4.5"/>',
   trash: '<path d="M3.8 4.5h8.4M6.2 4.5v-1h3.6v1M5.6 6.6v4.4M8 6.6v4.4M10.4 6.6v4.4M4.8 4.5l.5 7.2c.05.72.65 1.28 1.37 1.28h2.6c.72 0 1.32-.56 1.37-1.28l.5-7.2"/>',
-  drag: '<circle cx="6" cy="5" r="0.9"/><circle cx="10" cy="5" r="0.9"/><circle cx="6" cy="8" r="0.9"/><circle cx="10" cy="8" r="0.9"/><circle cx="6" cy="11" r="0.9"/><circle cx="10" cy="11" r="0.9"/>'
+  drag: '<path d="M5 4.5h2M9 4.5h2M5 8h2M9 8h2M5 11.5h2M9 11.5h2"/>'
 };
 
 const themes = ["warm", "calm", "dusk"];
@@ -421,7 +421,6 @@ function createIconButton(label, iconName, onClick, className = "") {
   button.type = "button";
   button.className = `icon-button ${className}`.trim();
   button.setAttribute("aria-label", label);
-  button.title = label;
   button.append(createIcon(iconName));
   button.addEventListener("click", onClick);
   return button;
@@ -460,11 +459,10 @@ function createTaskMain(task) {
   stateLabel.className = "state-icon";
   stateLabel.dataset.status = currentState(task).id;
   stateLabel.append(createIcon(currentState(task).icon, "state-icon-svg"));
-  stateLabel.title = currentState(task).label;
   stateLabel.setAttribute("aria-label", currentState(task).label);
 
   meta.append(stateLabel);
-  main.append(createTitleInput(task), meta);
+  main.append(meta, createTitleInput(task));
 
   return main;
 }
@@ -491,7 +489,6 @@ function createDragHandle(card, task) {
   handle.className = "drag-handle";
   handle.draggable = true;
   handle.append(createIcon("drag"));
-  handle.title = "Drag tasks or use arrow keys";
   handle.setAttribute("aria-label", "Move tasks between columns");
   addDragHandleHandlers(handle, card, task);
 
@@ -561,7 +558,6 @@ function renderKanban() {
     titleText.className = "kanban-state-icon";
     titleText.dataset.status = state.id;
     titleText.append(createIcon(state.icon, "kanban-state-svg"));
-    titleText.title = state.label;
     titleText.setAttribute("aria-label", state.label);
 
     const count = document.createElement("span");
