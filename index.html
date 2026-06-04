@@ -27,28 +27,22 @@
     <main class="shell" aria-label="March app">
       <div class="app-bar">
         <nav class="view-tabs" aria-label="Views">
-          <button class="tab is-active" type="button" data-view="tasks" aria-label="Tasks" title="Tasks" aria-pressed="true">✓</button>
-          <button class="tab" type="button" data-view="note" aria-label="Notes" title="Notes" aria-pressed="false">✎</button>
+          <button class="tab is-active" type="button" data-target="note" aria-label="Notes" title="Notes" aria-pressed="true"></button>
+          <span class="tab-divider" aria-hidden="true"></span>
+          <button class="tab" type="button" data-target="task-list" aria-label="Tasks list" title="Tasks list" aria-pressed="false"></button>
+          <button class="tab" type="button" data-target="task-kanban" aria-label="Tasks kanban" title="Tasks kanban" aria-pressed="false"></button>
         </nav>
-        <button class="tab settings-tab" type="button" data-view="settings" aria-label="Settings" title="Settings" aria-pressed="false">⋯</button>
       </div>
 
-      <section class="view is-active" id="tasksView" aria-label="Tasks">
+      <section class="view" id="tasksView" aria-label="Tasks">
         <div class="task-control-row">
-          <div class="mode-toggle" aria-label="Task layout">
-            <button class="mode-button is-active" type="button" data-mode="list" aria-label="List view" title="List view" aria-pressed="true">☰</button>
-            <button class="mode-button" type="button" data-mode="kanban" aria-label="Kanban view" title="Kanban view" aria-pressed="false">▥</button>
-          </div>
-
-          <div class="task-tools" aria-label="Task tools">
-            <button class="quiet-button" id="clearDoneButton" type="button">Clear Done</button>
-          </div>
+          <div class="task-tools" aria-label="Tasks tools"></div>
         </div>
 
         <form class="task-form" id="taskForm" autocomplete="off">
-          <label class="visually-hidden" for="taskInput">Task title</label>
-          <input id="taskInput" name="task" type="text" placeholder="New task" maxlength="120" required>
-          <button class="add-button" type="submit" aria-label="Add task" title="Add task">+</button>
+          <label class="visually-hidden" for="taskInput">Tasks title</label>
+          <input id="taskInput" name="task" type="text" placeholder="..." maxlength="120" required>
+          <button class="add-button" type="submit" aria-label="Add tasks" title="Add tasks"></button>
         </form>
 
         <div class="task-area">
@@ -57,12 +51,12 @@
         </div>
       </section>
 
-      <section class="view" id="noteView" aria-label="Notes">
+      <section class="view is-active" id="noteView" aria-label="Notes">
         <label class="visually-hidden" for="noteInput">Notes</label>
-        <textarea id="noteInput" spellcheck="true" placeholder="Notes"></textarea>
+        <textarea id="noteInput" spellcheck="true" placeholder="..."></textarea>
       </section>
 
-      <section class="view" id="settingsView" aria-label="Settings">
+      <section class="view" id="settingsView" aria-label="Settings" hidden>
         <div class="settings-panel">
           <div class="setting-group">
             <div class="setting-label">Theme</div>
@@ -72,11 +66,6 @@
               <button class="theme-button" type="button" data-theme="dusk" aria-pressed="false">Dusk</button>
             </div>
           </div>
-
-          <form class="setting-group column-settings" id="columnSettings" autocomplete="off">
-            <div class="setting-label">Columns</div>
-            <div class="column-inputs" id="columnInputs"></div>
-          </form>
 
           <div class="setting-group setting-actions">
           <button class="quiet-button" id="exportButton" type="button">Export</button>

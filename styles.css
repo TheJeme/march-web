@@ -72,6 +72,17 @@ button {
   cursor: pointer;
 }
 
+.ui-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .shell {
   display: flex;
   flex-direction: column;
@@ -93,6 +104,7 @@ button {
 .mode-toggle,
 .theme-options {
   display: inline-flex;
+  align-items: center;
   gap: 3px;
   padding: 3px;
   border: 1px solid var(--line);
@@ -123,13 +135,25 @@ button {
   min-width: 38px;
   place-items: center;
   padding: 0;
-  font-size: 1.05rem;
   line-height: 1;
+}
+
+.tab .ui-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.7;
 }
 
 .settings-tab {
   border: 1px solid var(--line);
   background: color-mix(in srgb, var(--panel) 72%, transparent);
+}
+
+.tab-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--line);
 }
 
 .quiet-button {
@@ -204,30 +228,6 @@ button {
   text-transform: uppercase;
 }
 
-.column-settings {
-  grid-template-columns: 1fr;
-}
-
-.column-settings .setting-label {
-  grid-column: 1 / -1;
-}
-
-.column-inputs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.setting-input {
-  width: 100%;
-  min-height: 36px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0 10px;
-  color: var(--ink);
-  background: color-mix(in srgb, var(--panel) 58%, transparent);
-}
-
 .setting-actions {
   display: flex;
   flex-wrap: wrap;
@@ -277,10 +277,15 @@ textarea::placeholder {
   border: 0;
   border-radius: 6px;
   color: var(--accent-ink);
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 0;
   line-height: 1;
   background: var(--accent);
+}
+
+.add-button .ui-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
 }
 
 .task-tools {
@@ -357,24 +362,34 @@ textarea::placeholder {
   font-size: 0.82rem;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
-  border-radius: 999px;
-  background: var(--accent);
+.state-icon {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: var(--muted);
 }
 
-.status-dot[data-status="new"] {
-  background: #7895a5;
+.state-icon[data-status="new"],
+.kanban-state-icon[data-status="new"] {
+  color: #7895a5;
 }
 
-.status-dot[data-status="doing"] {
-  background: #c8a45f;
+.state-icon[data-status="doing"],
+.kanban-state-icon[data-status="doing"] {
+  color: #c8a45f;
 }
 
-.status-dot[data-status="done"] {
-  background: var(--accent);
+.state-icon[data-status="done"],
+.kanban-state-icon[data-status="done"] {
+  color: var(--accent);
+}
+
+.state-icon .ui-icon,
+.icon-button .ui-icon,
+.drag-handle .ui-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .task-actions {
@@ -448,11 +463,27 @@ textarea::placeholder {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .kanban-title span:last-child {
   font-weight: 600;
+}
+
+.kanban-state-icon {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--panel) 64%, transparent);
+  line-height: 1;
+}
+
+.kanban-state-icon .ui-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .kanban-stack {
@@ -588,9 +619,7 @@ textarea:focus-visible {
   }
 
   .task-form,
-  .task-item,
-  .column-settings,
-  .column-inputs {
+  .task-item {
     grid-template-columns: 1fr;
   }
 
