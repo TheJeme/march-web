@@ -1,4 +1,4 @@
-const CACHE_NAME = "march-v1";
+const CACHE_NAME = "march-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,8 +7,7 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-192.png",
-  "./icon-512.png",
-  "./og-image.svg"
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {

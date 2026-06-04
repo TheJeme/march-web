@@ -167,6 +167,39 @@ function stateIndex(task) {
   return Math.max(0, states.findIndex((state) => state.id === coerceStateId(task.state)));
 }
 
+function stateRank(stateId) {
+  return Math.max(0, states.findIndex((state) => state.id === coerceStateId(stateId)));
+}
+
+function orderValue(task) {
+  return Number.isFinite(task.order) ? task.order : task.createdAt;
+}
+
+function compareTasks(a, b) {
+  return stateRank(a.state) - stateRank(b.state)
+    || orderValue(a) - orderValue(b)
+    || a.createdAt - b.createdAt;
+}
+
+function compareTasksInState(a, b) {
+  return orderValue(a) - orderValue(b) || a.createdAt - b.createdAt;
+}
+
+function tasksInState(stateId, source = tasks) {
+  return source
+    .filter((task) => coerceStateId(task.state) === stateId)
+    .slice()
+    .sort(compareTasksInState);
+}
+
+function nextOrderForState(stateId, excludeId = "") {
+  const lastOrder = tasksInState(stateId)
+    .filter((task) => task.id !== excludeId)
+    .reduce((max, task) => Math.max(max, orderValue(task)), 0);
+
+  return lastOrder + 1000;
+}
+
 function coerceStateId(stateId, activeStates = states) {
   if (activeStates.some((state) => state.id === stateId)) {
     return stateId;
@@ -180,13 +213,11 @@ function coerceStateId(stateId, activeStates = states) {
 }
 
 function moveTask(id, direction) {
-  tasks = tasks.map((task) => {
-    if (task.id !== id) return task;
-    const nextIndex = Math.min(states.length - 1, Math.max(0, stateIndex(task) + direction));
-    return { ...task, state: states[nextIndex].id, updatedAt: Date.now() };
-  });
-  saveTasks();
-  render();
+  const task = tasks.find((item) => item.id === id);
+  if (!task) return;
+
+  const nextIndex = Math.min(states.length - 1, Math.max(0, stateIndex(task) + direction));
+  moveTaskToPosition(id, states[nextIndex].id);
 }
 
 function deleteTask(id) {
@@ -209,11 +240,36 @@ function updateTaskTitle(id, title) {
 }
 
 function setTaskState(id, stateId) {
+  moveTaskToPosition(id, stateId);
+}
+
+function moveTaskToPosition(id, stateId, beforeId = null) {
   if (!states.some((state) => state.id === stateId)) return;
 
-  tasks = tasks.map((task) => (
-    task.id === id ? { ...task, state: stateId, updatedAt: Date.now() } : task
-  ));
+  const movedTask = tasks.find((task) => task.id === id);
+  if (!movedTask) return;
+
+  const rest = tasks.filter((task) => task.id !== id);
+  const targetTasks = tasksInState(stateId, rest);
+  const beforeIndex = beforeId ? targetTasks.findIndex((task) => task.id === beforeId) : -1;
+  const insertAt = beforeIndex >= 0 ? beforeIndex : targetTasks.length;
+
+  const nextTask = {
+    ...movedTask,
+    state: stateId,
+    updatedAt: Date.now()
+  };
+  const nextColumn = targetTasks.slice();
+  nextColumn.splice(insertAt < 0 ? targetTasks.length : insertAt, 0, nextTask);
+
+  const nextOrders = new Map(nextColumn.map((task, index) => [task.id, (index + 1) * 1000]));
+  tasks = [
+    ...rest.map((task) => (
+      nextOrders.has(task.id) ? { ...task, order: nextOrders.get(task.id) } : task
+    )),
+    { ...nextTask, order: nextOrders.get(id) || nextOrderForState(stateId, id) }
+  ];
+
   saveTasks();
   render();
 }
@@ -224,6 +280,24 @@ function moveTaskToIndex(id, nextIndex) {
   if (!nextState) return;
   pendingHandleFocusId = id;
   setTaskState(id, nextState.id);
+}
+
+function moveTaskWithinState(id, direction) {
+  const task = tasks.find((item) => item.id === id);
+  if (!task) return;
+
+  const stateId = currentState(task).id;
+  const columnTasks = tasksInState(stateId);
+  const currentIndex = columnTasks.findIndex((item) => item.id === id);
+  if (currentIndex < 0) return;
+
+  const nextIndex = Math.min(columnTasks.length - 1, Math.max(0, currentIndex + direction));
+  if (nextIndex === currentIndex) return;
+
+  const remainingTasks = columnTasks.filter((item) => item.id !== id);
+  const beforeId = remainingTasks[nextIndex]?.id || null;
+  pendingHandleFocusId = id;
+  moveTaskToPosition(id, stateId, beforeId);
 }
 
 function clearDoneTasks() {
@@ -272,11 +346,13 @@ function normalizeTasks(value, activeStates = states) {
       const state = coerceStateId(task.state, activeStates);
       const createdAt = Number.isFinite(task.createdAt) ? task.createdAt : Date.now();
       const updatedAt = Number.isFinite(task.updatedAt) ? task.updatedAt : createdAt;
+      const order = Number.isFinite(task.order) ? task.order : createdAt;
 
       return {
         id: typeof task.id === "string" && task.id ? task.id : createId(),
         title: title.slice(0, 120),
         state,
+        order,
         createdAt,
         updatedAt
       };
@@ -372,12 +448,22 @@ function addDragHandleHandlers(handle, card, task) {
   handle.addEventListener("keydown", (event) => {
     const index = stateIndex(task);
 
-    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveTaskWithinState(task.id, -1);
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveTaskWithinState(task.id, 1);
+    }
+
+    if (event.key === "ArrowLeft") {
       event.preventDefault();
       moveTaskToIndex(task.id, index - 1);
     }
 
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    if (event.key === "ArrowRight") {
       event.preventDefault();
       moveTaskToIndex(task.id, index + 1);
     }
@@ -392,6 +478,16 @@ function addDragHandleHandlers(handle, card, task) {
       moveTaskToIndex(task.id, states.length - 1);
     }
   });
+}
+
+function getDropBeforeId(column, event) {
+  const cards = [...column.querySelectorAll(".kanban-card:not(.is-dragging)")];
+  const nextCard = cards.find((card) => {
+    const rect = card.getBoundingClientRect();
+    return event.clientY < rect.top + rect.height / 2;
+  });
+
+  return nextCard?.dataset.taskId || null;
 }
 
 function addDropHandlers(column, stateId) {
@@ -410,9 +506,10 @@ function addDropHandlers(column, stateId) {
   column.addEventListener("drop", (event) => {
     event.preventDefault();
     const taskId = event.dataTransfer.getData("text/plain") || draggedTaskId;
+    const beforeId = getDropBeforeId(column, event);
     column.classList.remove("is-drop-target");
     stopDragging();
-    setTaskState(taskId, stateId);
+    moveTaskToPosition(taskId, stateId, beforeId);
   });
 }
 
@@ -489,7 +586,7 @@ function createDragHandle(card, task) {
   handle.className = "drag-handle";
   handle.draggable = true;
   handle.append(createIcon("drag"));
-  handle.setAttribute("aria-label", "Move tasks between columns");
+  handle.setAttribute("aria-label", "Move or sort tasks");
   addDragHandleHandlers(handle, card, task);
 
   if (pendingHandleFocusId === task.id) {
@@ -536,7 +633,7 @@ function renderList() {
 
   tasks
     .slice()
-    .sort((a, b) => a.createdAt - b.createdAt)
+    .sort(compareTasks)
     .forEach((task) => elements.taskList.append(createTaskItem(task)));
 }
 
@@ -550,7 +647,7 @@ function renderKanban() {
     column.dataset.state = state.id;
     addDropHandlers(column, state.id);
 
-    const columnTasks = tasks.filter((task) => currentState(task).id === state.id);
+    const columnTasks = tasksInState(state.id);
     const title = document.createElement("div");
     title.className = "kanban-title";
 
@@ -573,10 +670,7 @@ function renderKanban() {
       empty.className = "empty-state";
       stack.append(empty);
     } else {
-      columnTasks
-        .slice()
-        .sort((a, b) => a.createdAt - b.createdAt)
-        .forEach((task) => stack.append(createKanbanCard(task)));
+      columnTasks.forEach((task) => stack.append(createKanbanCard(task)));
     }
 
     column.append(title, stack);
@@ -638,6 +732,7 @@ elements.taskForm.addEventListener("submit", (event) => {
     id: createId(),
     title,
     state: states[0].id,
+    order: nextOrderForState(states[0].id),
     createdAt: Date.now(),
     updatedAt: Date.now()
   });
