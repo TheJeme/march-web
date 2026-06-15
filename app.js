@@ -13,6 +13,7 @@ const iconMarkup = {
   note: '<path d="M3 4h10M3 8h10M3 12h8"/>',
   list: '<circle cx="4" cy="4" r="1"/><circle cx="4" cy="8" r="1"/><circle cx="4" cy="12" r="1"/><path d="M7 4h6M7 8h6M7 12h6"/>',
   kanban: '<rect x="2.5" y="3" width="3" height="10" rx="1"/><rect x="6.5" y="3" width="3" height="6.4" rx="1"/><rect x="10.5" y="3" width="3" height="8.2" rx="1"/>',
+  calendar: '<rect x="3" y="4" width="10" height="9" rx="1.4"/><path d="M5.2 2.8v2.4M10.8 2.8v2.4M3 6.7h10"/>',
   plus: '<path d="M8 3.5v9M3.5 8h9"/>',
   "status-new": '<circle cx="8" cy="8" r="4.5"/>',
   "status-doing": '<circle cx="8" cy="8" r="4.5"/><path d="M8 3.5a4.5 4.5 0 0 0 0 9Z" fill="currentColor" stroke="none"/>',
@@ -34,6 +35,9 @@ const elements = {
   },
   taskForm: document.querySelector("#taskForm"),
   taskInput: document.querySelector("#taskInput"),
+  taskDueButton: document.querySelector("#taskDueButton"),
+  taskDueInput: document.querySelector("#taskDueInput"),
+  taskDuePreview: document.querySelector("#taskDuePreview"),
   taskList: document.querySelector("#taskList"),
   kanbanBoard: document.querySelector("#kanbanBoard"),
   exportButton: document.querySelector("#exportButton"),
@@ -55,12 +59,17 @@ let mode = ["list", "kanban"].includes(localStorage.getItem(MODE_KEY))
 let activeTarget = "note";
 let draggedTaskId = null;
 let pendingHandleFocusId = null;
+let preserveNextListOrder = false;
 
 function loadTasks() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     return Array.isArray(parsed)
-      ? parsed.map((task) => ({ ...task, state: coerceStateId(task.state) }))
+      ? parsed.map((task) => ({
+          ...task,
+          state: coerceStateId(task.state),
+          dueAt: coerceDueAt(task.dueAt)
+        }))
       : [];
   } catch {
     return [];
@@ -106,6 +115,128 @@ function createId() {
   }
 
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function coerceDueAt(value) {
+  const dueAt = Number(value);
+  return Number.isFinite(dueAt) && dueAt > 0 ? dueAt : null;
+}
+
+function parseDueInput(value) {
+  if (!value) return null;
+
+  const dueAt = new Date(value).getTime();
+  return Number.isFinite(dueAt) ? dueAt : null;
+}
+
+function valueFromDueInput(input) {
+  if (!input.value) return null;
+  return Number.isFinite(input.valueAsNumber) ? input.valueAsNumber : parseDueInput(input.value);
+}
+
+function dueInputValue(dueAt) {
+  if (!dueAt) return "";
+
+  const date = new Date(dueAt);
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
+function openDatePicker(input) {
+  input.required = false;
+  input.focus();
+
+  if (typeof input.showPicker === "function") {
+    try {
+      input.showPicker();
+    } catch {
+      input.click();
+    }
+    return;
+  }
+
+  input.click();
+}
+
+function formatDueDateTime(dueAt) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(dueAt));
+}
+
+function formatTimeLeft(dueAt, now = Date.now()) {
+  if (!dueAt) return "";
+
+  const diff = dueAt - now;
+  const absDiff = Math.abs(diff);
+  const minute = 60000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  let value;
+  let unit;
+
+  if (absDiff < minute) {
+    value = 0;
+    unit = "min";
+  } else if (absDiff < hour) {
+    value = Math.ceil(absDiff / minute);
+    unit = "min";
+  } else if (absDiff < day) {
+    value = Math.ceil(absDiff / hour);
+    unit = "h";
+  } else {
+    value = Math.ceil(absDiff / day);
+    unit = "d";
+  }
+
+  const amount = `${value} ${unit}`;
+  return diff >= 0 ? `${amount} left` : `${amount} late`;
+}
+
+function dueStatus(dueAt, stateId) {
+  if (!dueAt || stateId === "done") return "";
+  return dueAt < Date.now() ? "late" : "open";
+}
+
+function updateDueTimeLabels() {
+  document.querySelectorAll("[data-due-at]").forEach((element) => {
+    const dueAt = coerceDueAt(element.dataset.dueAt);
+    const stateId = element.dataset.state || "";
+    const text = dueAt
+      ? stateId === "done"
+        ? formatDueDateTime(dueAt)
+        : `${formatDueDateTime(dueAt)} · ${formatTimeLeft(dueAt)}`
+      : "";
+    element.textContent = text;
+    element.dataset.dueStatus = dueStatus(dueAt, stateId);
+  });
+}
+
+function updateTaskDuePreview() {
+  const dueAt = valueFromDueInput(elements.taskDueInput);
+  elements.taskDuePreview.textContent = dueAt ? formatDueDateTime(dueAt) : "";
+}
+
+function prepareDateInput(input) {
+  input.required = false;
+  input.setAttribute("aria-required", "false");
+}
+
+function addDatePickerHandlers(picker, input, onValueChange) {
+  prepareDateInput(input);
+
+  picker.addEventListener("click", (event) => {
+    if (event.target === input) return;
+    event.preventDefault();
+    openDatePicker(input);
+  });
+
+  input.addEventListener("input", onValueChange);
+  input.addEventListener("change", onValueChange);
 }
 
 function createIcon(name, className = "") {
@@ -181,6 +312,21 @@ function compareTasks(a, b) {
     || a.createdAt - b.createdAt;
 }
 
+function sortTasksForList(source = tasks) {
+  return source.slice().sort(compareTasks);
+}
+
+function tasksInCurrentListOrder() {
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const orderedTasks = [...elements.taskList.querySelectorAll("[data-task-id]")]
+    .map((element) => taskById.get(element.dataset.taskId))
+    .filter(Boolean);
+  const orderedIds = new Set(orderedTasks.map((task) => task.id));
+  const newTasks = tasks.filter((task) => !orderedIds.has(task.id));
+
+  return [...orderedTasks, ...newTasks];
+}
+
 function compareTasksInState(a, b) {
   return orderValue(a) - orderValue(b) || a.createdAt - b.createdAt;
 }
@@ -239,6 +385,16 @@ function updateTaskTitle(id, title) {
   return cleanTitle;
 }
 
+function updateTaskDueAt(id, value) {
+  const dueAt = coerceDueAt(value);
+
+  tasks = tasks.map((task) => (
+    task.id === id ? { ...task, dueAt, updatedAt: Date.now() } : task
+  ));
+  saveTasks();
+  render();
+}
+
 function setTaskState(id, stateId) {
   moveTaskToPosition(id, stateId);
 }
@@ -269,6 +425,8 @@ function moveTaskToPosition(id, stateId, beforeId = null) {
     )),
     { ...nextTask, order: nextOrders.get(id) || nextOrderForState(stateId, id) }
   ];
+
+  preserveNextListOrder = mode === "list" && activeTarget === "task-list";
 
   saveTasks();
   render();
@@ -347,11 +505,13 @@ function normalizeTasks(value, activeStates = states) {
       const createdAt = Number.isFinite(task.createdAt) ? task.createdAt : Date.now();
       const updatedAt = Number.isFinite(task.updatedAt) ? task.updatedAt : createdAt;
       const order = Number.isFinite(task.order) ? task.order : createdAt;
+      const dueAt = coerceDueAt(task.dueAt);
 
       return {
         id: typeof task.id === "string" && task.id ? task.id : createId(),
         title: title.slice(0, 120),
         state,
+        dueAt,
         order,
         createdAt,
         updatedAt
@@ -409,6 +569,8 @@ function deleteAllData() {
   mode = "list";
   draggedTaskId = null;
   elements.taskInput.value = "";
+  elements.taskDueInput.value = "";
+  updateTaskDuePreview();
   setNoteText("");
 
   localStorage.removeItem(STORAGE_KEY);
@@ -545,6 +707,32 @@ function createTitleInput(task) {
   return input;
 }
 
+function createDueControls(task) {
+  const controls = document.createElement("div");
+  controls.className = "task-schedule";
+
+  const picker = document.createElement("label");
+  picker.className = "date-picker";
+  picker.setAttribute("aria-label", "Due date and time");
+  picker.append(createIcon("calendar"));
+
+  const input = document.createElement("input");
+  input.className = "date-picker-input";
+  input.type = "datetime-local";
+  input.value = dueInputValue(task.dueAt);
+  input.setAttribute("aria-label", "Due date and time");
+  addDatePickerHandlers(picker, input, () => updateTaskDueAt(task.id, valueFromDueInput(input)));
+
+  const timeLeft = document.createElement("span");
+  timeLeft.className = "time-left";
+  timeLeft.dataset.dueAt = task.dueAt || "";
+  timeLeft.dataset.state = currentState(task).id;
+
+  picker.append(input);
+  controls.append(picker, timeLeft);
+  return controls;
+}
+
 function createTaskMain(task) {
   const main = document.createElement("div");
   main.className = "task-main";
@@ -559,7 +747,7 @@ function createTaskMain(task) {
   stateLabel.setAttribute("aria-label", currentState(task).label);
 
   meta.append(stateLabel);
-  main.append(meta, createTitleInput(task));
+  main.append(meta, createTitleInput(task), createDueControls(task));
 
   return main;
 }
@@ -617,11 +805,13 @@ function createKanbanCard(task) {
   header.className = "kanban-card-head";
   header.append(createDragHandle(card, task), createTaskActions(task));
 
-  card.append(header, createTitleInput(task));
+  card.append(header, createTitleInput(task), createDueControls(task));
   return card;
 }
 
 function renderList() {
+  const listTasks = preserveNextListOrder ? tasksInCurrentListOrder() : sortTasksForList();
+  preserveNextListOrder = false;
   elements.taskList.replaceChildren();
 
   if (!tasks.length) {
@@ -631,10 +821,9 @@ function renderList() {
     return;
   }
 
-  tasks
-    .slice()
-    .sort(compareTasks)
-    .forEach((task) => elements.taskList.append(createTaskItem(task)));
+  listTasks.forEach((task) => elements.taskList.append(createTaskItem(task)));
+
+  updateDueTimeLabels();
 }
 
 function renderKanban() {
@@ -676,6 +865,8 @@ function renderKanban() {
     column.append(title, stack);
     elements.kanbanBoard.append(column);
   });
+
+  updateDueTimeLabels();
 }
 
 function render() {
@@ -721,6 +912,7 @@ elements.deleteAllButton.addEventListener("click", deleteAllData);
 elements.importFile.addEventListener("change", () => {
   importBackup(elements.importFile.files[0]);
 });
+addDatePickerHandlers(elements.taskDueButton, elements.taskDueInput, updateTaskDuePreview);
 
 elements.taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -732,12 +924,16 @@ elements.taskForm.addEventListener("submit", (event) => {
     id: createId(),
     title,
     state: states[0].id,
+    dueAt: valueFromDueInput(elements.taskDueInput),
     order: nextOrderForState(states[0].id),
     createdAt: Date.now(),
     updatedAt: Date.now()
   });
 
   elements.taskInput.value = "";
+  elements.taskDueInput.value = "";
+  updateTaskDuePreview();
+  tasks = sortTasksForList();
   saveTasks();
   render();
 });
@@ -755,5 +951,8 @@ if ("serviceWorker" in navigator) {
 
 applyTheme();
 applyStaticIcons();
+elements.taskDueButton.prepend(createIcon("calendar"));
 activateTarget("note");
 renderThemeSettings();
+
+window.setInterval(updateDueTimeLabels, 30000);

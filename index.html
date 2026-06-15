@@ -42,6 +42,10 @@
         <form class="task-form" id="taskForm" autocomplete="off">
           <label class="visually-hidden" for="taskInput">Tasks title</label>
           <input id="taskInput" name="task" type="text" placeholder="..." maxlength="120" required>
+          <label class="date-picker form-date-picker" id="taskDueButton" aria-label="Due date and time">
+            <input class="date-picker-input" id="taskDueInput" name="due" type="datetime-local" aria-label="Due date and time" aria-required="false">
+          </label>
+          <span class="form-due-preview" id="taskDuePreview"></span>
           <button class="add-button" type="submit" aria-label="Add tasks"></button>
         </form>
 
