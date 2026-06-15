@@ -393,10 +393,6 @@ textarea::placeholder {
   background: color-mix(in srgb, var(--panel) 78%, transparent);
 }
 
-.date-picker .ui-icon {
-  cursor: default;
-}
-
 .date-picker-input {
   position: absolute;
   inset: 0;

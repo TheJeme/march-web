@@ -129,33 +129,12 @@ function parseDueInput(value) {
   return Number.isFinite(dueAt) ? dueAt : null;
 }
 
-function valueFromDueInput(input) {
-  if (!input.value) return null;
-  return Number.isFinite(input.valueAsNumber) ? input.valueAsNumber : parseDueInput(input.value);
-}
-
 function dueInputValue(dueAt) {
   if (!dueAt) return "";
 
   const date = new Date(dueAt);
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return offsetDate.toISOString().slice(0, 16);
-}
-
-function openDatePicker(input) {
-  input.required = false;
-  input.focus();
-
-  if (typeof input.showPicker === "function") {
-    try {
-      input.showPicker();
-    } catch {
-      input.click();
-    }
-    return;
-  }
-
-  input.click();
 }
 
 function formatDueDateTime(dueAt) {
@@ -217,24 +196,11 @@ function updateDueTimeLabels() {
 }
 
 function updateTaskDuePreview() {
-  const dueAt = valueFromDueInput(elements.taskDueInput);
+  const dueAt = parseDueInput(elements.taskDueInput.value);
   elements.taskDuePreview.textContent = dueAt ? formatDueDateTime(dueAt) : "";
 }
 
-function prepareDateInput(input) {
-  input.required = false;
-  input.setAttribute("aria-required", "false");
-}
-
-function addDatePickerHandlers(picker, input, onValueChange) {
-  prepareDateInput(input);
-
-  picker.addEventListener("click", (event) => {
-    if (event.target === input) return;
-    event.preventDefault();
-    openDatePicker(input);
-  });
-
+function addDueInputHandlers(input, onValueChange) {
   input.addEventListener("input", onValueChange);
   input.addEventListener("change", onValueChange);
 }
@@ -721,7 +687,8 @@ function createDueControls(task) {
   input.type = "datetime-local";
   input.value = dueInputValue(task.dueAt);
   input.setAttribute("aria-label", "Due date and time");
-  addDatePickerHandlers(picker, input, () => updateTaskDueAt(task.id, valueFromDueInput(input)));
+  input.setAttribute("aria-required", "false");
+  addDueInputHandlers(input, () => updateTaskDueAt(task.id, parseDueInput(input.value)));
 
   const timeLeft = document.createElement("span");
   timeLeft.className = "time-left";
@@ -912,7 +879,7 @@ elements.deleteAllButton.addEventListener("click", deleteAllData);
 elements.importFile.addEventListener("change", () => {
   importBackup(elements.importFile.files[0]);
 });
-addDatePickerHandlers(elements.taskDueButton, elements.taskDueInput, updateTaskDuePreview);
+addDueInputHandlers(elements.taskDueInput, updateTaskDuePreview);
 
 elements.taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -924,7 +891,7 @@ elements.taskForm.addEventListener("submit", (event) => {
     id: createId(),
     title,
     state: states[0].id,
-    dueAt: valueFromDueInput(elements.taskDueInput),
+    dueAt: parseDueInput(elements.taskDueInput.value),
     order: nextOrderForState(states[0].id),
     createdAt: Date.now(),
     updatedAt: Date.now()
